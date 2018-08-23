@@ -263,6 +263,8 @@
 }
 
 - (void)configDefaultSetting {
+    self.maxPhotoLength = 0;
+    self.maxGIfLength = 0;
     self.timeout = 15;
     self.photoWidth = 828.0;
     self.photoPreviewMaxWidth = 600;

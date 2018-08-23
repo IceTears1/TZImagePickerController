@@ -111,11 +111,14 @@
 
 - (void)setType:(TZAssetCellType)type {
     _type = type;
-    if (type == TZAssetCellTypePhoto || type == TZAssetCellTypeLivePhoto || (type == TZAssetCellTypePhotoGif && !self.allowPickingGif) || self.allowPickingMultipleVideo) {
+    
+   #pragma mark - 新增/修改属性（去掉了 gif 不能多选的问题）
+    if (type == TZAssetCellTypePhoto || type == TZAssetCellTypeLivePhoto || (type == TZAssetCellTypePhotoGif) || self.allowPickingMultipleVideo) {
         _selectImageView.hidden = NO;
         _selectPhotoButton.hidden = NO;
         _bottomView.hidden = YES;
-    } else { // Video of Gif
+        
+    }else { // Video of Gif
         _selectImageView.hidden = YES;
         _selectPhotoButton.hidden = YES;
     }
@@ -145,21 +148,44 @@
         _tapGesture.enabled = YES;
     }
 }
-
+   #pragma mark - 新增/修改属性
 - (void)selectPhotoButtonClick:(UIButton *)sender {
-    if (self.didSelectPhotoBlock) {
-        self.didSelectPhotoBlock(sender.isSelected);
-    }
-    self.selectImageView.image = sender.isSelected ? self.photoSelImage : self.photoDefImage;
-    if (sender.isSelected) {
-        if (![TZImagePickerConfig sharedInstance].showSelectedIndex && ![TZImagePickerConfig sharedInstance].showPhotoCannotSelectLayer) {
-            [UIView showOscillatoryAnimationWithLayer:_selectImageView.layer type:TZOscillatoryAnimationToBigger];
+    __weak typeof(self) weakSelf = self;
+    if (sender.isSelected){
+        if (weakSelf.didSelectPhotoBlock) {
+            weakSelf.didSelectPhotoBlock(sender.isSelected);
         }
-        // 用户选中了该图片，提前获取一下大图
-        [self requestBigImage];
-    } else { // 取消选中，取消大图的获取
         [self cancelBigImageRequest];
+    }else{
+        
+        [[TZImageManager manager] getOriginalPhotoDataWithAsset:self.model.asset completion:^(NSData *data, NSDictionary *info, BOOL isDegraded) {
+            NSInteger dataSize = data.length ;
+            if (weakSelf.model.type == TZAssetModelMediaTypePhotoGif && weakSelf.maxGIfLength != 0 && dataSize >weakSelf.maxGIfLength * 1024 * 1024){
+                //gif 类型
+                if (weakSelf.didSelectErrorPhotoBlock) {
+                    weakSelf.didSelectErrorPhotoBlock(@"GIF图片");
+                }
+            }else if (weakSelf.model.type == TZAssetModelMediaTypePhoto && weakSelf.maxPhotoLength != 0 && dataSize >weakSelf.maxPhotoLength * 1024 * 1024) {
+                if (weakSelf.didSelectErrorPhotoBlock) {
+                    weakSelf.didSelectErrorPhotoBlock(@"图片");
+                }
+            }else{
+                if (weakSelf.didSelectPhotoBlock) {
+                    weakSelf.didSelectPhotoBlock(sender.isSelected);
+                }
+                
+                weakSelf.selectImageView.image = sender.isSelected ? self.photoSelImage : weakSelf.photoDefImage;
+                
+                if (![TZImagePickerConfig sharedInstance].showSelectedIndex && ![TZImagePickerConfig sharedInstance].showPhotoCannotSelectLayer) {
+                    [UIView showOscillatoryAnimationWithLayer:weakSelf.selectImageView.layer type:TZOscillatoryAnimationToBigger];
+                }
+                // 用户选中了该图片，提前获取一下大图
+                [self requestBigImage];
+            }
+        }];
     }
+    
+    
 }
 
 /// 只在单选状态且allowPreview为NO时会有该事件
@@ -327,7 +353,7 @@
     static CGFloat progressWH = 20;
     CGFloat progressXY = (self.tz_width - progressWH) / 2;
     _progressView.frame = CGRectMake(progressXY, progressXY, progressWH, progressWH);
-
+    
     _bottomView.frame = CGRectMake(0, self.tz_height - 17, self.tz_width, 17);
     _videoImgView.frame = CGRectMake(8, 0, 17, 17);
     _timeLength.frame = CGRectMake(self.videoImgView.tz_right, 0, self.tz_width - self.videoImgView.tz_right - 5, 17);

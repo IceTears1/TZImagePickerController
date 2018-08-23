@@ -220,6 +220,7 @@
             imagePickerVc.allowPickingMultipleVideo = self.allowPickingMuitlpleVideoSwitch.isOn;
             imagePickerVc.showSelectedIndex = self.showSelectedIndexSwitch.isOn;
             imagePickerVc.isSelectOriginalPhoto = _isSelectOriginalPhoto;
+
             [imagePickerVc setDidFinishPickingPhotosHandle:^(NSArray<UIImage *> *photos, NSArray *assets, BOOL isSelectOriginalPhoto) {
                 self->_selectedPhotos = [NSMutableArray arrayWithArray:photos];
                 self->_selectedAssets = [NSMutableArray arrayWithArray:assets];
@@ -266,6 +267,9 @@
     
 #pragma mark - 五类个性化设置，这些参数都可以不传，此时会走默认设置
     imagePickerVc.isSelectOriginalPhoto = _isSelectOriginalPhoto;
+    
+    imagePickerVc.maxGIfLength = 4;
+    imagePickerVc.maxPhotoLength = 2;
     
     if (self.maxCountTF.text.integerValue > 1) {
         // 1.设置目前已经选中的图片数组

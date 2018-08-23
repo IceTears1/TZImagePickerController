@@ -191,11 +191,11 @@ static CGFloat itemMargin = 5;
 - (void)configBottomToolBar {
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     if (!tzImagePickerVc.showSelectBtn) return;
-
+    
     _bottomToolBar = [[UIView alloc] initWithFrame:CGRectZero];
     CGFloat rgb = 253 / 255.0;
     _bottomToolBar.backgroundColor = [UIColor colorWithRed:rgb green:rgb blue:rgb alpha:1.0];
-
+    
     _previewButton = [UIButton buttonWithType:UIButtonTypeCustom];
     [_previewButton addTarget:self action:@selector(previewButtonClick) forControlEvents:UIControlEventTouchUpInside];
     _previewButton.titleLabel.font = [UIFont systemFontOfSize:16];
@@ -273,7 +273,7 @@ static CGFloat itemMargin = 5;
 
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
-
+    
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     
     CGFloat top = 0;
@@ -491,6 +491,8 @@ static CGFloat itemMargin = 5;
     cell.allowPickingMultipleVideo = tzImagePickerVc.allowPickingMultipleVideo;
     cell.photoDefImage = tzImagePickerVc.photoDefImage;
     cell.photoSelImage = tzImagePickerVc.photoSelImage;
+    cell.maxGIfLength = tzImagePickerVc.maxGIfLength;
+    cell.maxPhotoLength = tzImagePickerVc.maxPhotoLength;
     cell.useCachedImage = self.useCachedImage;
     cell.assetCellDidSetModelBlock = tzImagePickerVc.assetCellDidSetModelBlock;
     cell.assetCellDidLayoutSubviewsBlock = tzImagePickerVc.assetCellDidLayoutSubviewsBlock;
@@ -519,10 +521,18 @@ static CGFloat itemMargin = 5;
     __weak typeof(cell) weakCell = cell;
     __weak typeof(self) weakSelf = self;
     __weak typeof(_numberImageView.layer) weakLayer = _numberImageView.layer;
+    
+    cell.didSelectErrorPhotoBlock = ^(NSString *str) {
+        NSString *tipsStr = [NSString stringWithFormat:@"%@超过大小限制",str];
+       
+          [tzImagePickerVc showAlertWithTitle:tipsStr];
+      
+    };
     cell.didSelectPhotoBlock = ^(BOOL isSelected) {
         __strong typeof(weakCell) strongCell = weakCell;
         __strong typeof(weakSelf) strongSelf = weakSelf;
         __strong typeof(weakLayer) strongLayer = weakLayer;
+        
         TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)strongSelf.navigationController;
         // 1. cancel select / 取消选择
         if (isSelected) {
@@ -543,12 +553,14 @@ static CGFloat itemMargin = 5;
         } else {
             // 2. select:check if over the maxImagesCount / 选择照片,检查是否超过了最大个数的限制
             if (tzImagePickerVc.selectedModels.count < tzImagePickerVc.maxImagesCount) {
+                
                 if (tzImagePickerVc.maxImagesCount == 1 && !tzImagePickerVc.allowPreview) {
                     model.isSelected = YES;
                     [tzImagePickerVc addSelectedModel:model];
                     [strongSelf doneButtonClick];
                     return;
                 }
+                
                 strongCell.selectPhotoButton.selected = YES;
                 model.isSelected = YES;
                 if (tzImagePickerVc.showSelectedIndex || tzImagePickerVc.showPhotoCannotSelectLayer) {
@@ -579,25 +591,33 @@ static CGFloat itemMargin = 5;
         index = indexPath.item - 1;
     }
     TZAssetModel *model = _models[index];
+    #pragma mark - 新增/修改属性   (不能gif  图片混选问题 去除)
     if (model.type == TZAssetModelMediaTypeVideo && !tzImagePickerVc.allowPickingMultipleVideo) {
         if (tzImagePickerVc.selectedModels.count > 0) {
             TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
             [imagePickerVc showAlertWithTitle:[NSBundle tz_localizedStringForKey:@"Can not choose both video and photo"]];
         } else {
-            TZVideoPlayerController *videoPlayerVc = [[TZVideoPlayerController alloc] init];
-            videoPlayerVc.model = model;
-            [self.navigationController pushViewController:videoPlayerVc animated:YES];
+//            TZVideoPlayerController *videoPlayerVc = [[TZVideoPlayerController alloc] init];
+//            videoPlayerVc.model = model;
+//
+//            [self.navigationController pushViewController:videoPlayerVc animated:YES];
+            TZPhotoPreviewController *photoPreviewVc = [[TZPhotoPreviewController alloc] init];
+            photoPreviewVc.currentIndex = index;
+            photoPreviewVc.models = _models;
+            [self pushPhotoPrevireViewController:photoPreviewVc];
         }
-    } else if (model.type == TZAssetModelMediaTypePhotoGif && tzImagePickerVc.allowPickingGif && !tzImagePickerVc.allowPickingMultipleVideo) {
-        if (tzImagePickerVc.selectedModels.count > 0) {
-            TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
-            [imagePickerVc showAlertWithTitle:[NSBundle tz_localizedStringForKey:@"Can not choose both photo and GIF"]];
-        } else {
-            TZGifPhotoPreviewController *gifPreviewVc = [[TZGifPhotoPreviewController alloc] init];
-            gifPreviewVc.model = model;
-            [self.navigationController pushViewController:gifPreviewVc animated:YES];
-        }
-    } else {
+    }
+//    else if (model.type == TZAssetModelMediaTypePhotoGif && tzImagePickerVc.allowPickingGif) {
+////        if (tzImagePickerVc.selectedModels.count > 0) {
+////            TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
+////            [imagePickerVc showAlertWithTitle:[NSBundle tz_localizedStringForKey:@"Can not choose both photo and GIF"]];
+////        } else {
+//            TZGifPhotoPreviewController *gifPreviewVc = [[TZGifPhotoPreviewController alloc] init];
+//            gifPreviewVc.model = model;
+//            [self.navigationController pushViewController:gifPreviewVc animated:YES];
+////        }
+//    }
+    else {
         TZPhotoPreviewController *photoPreviewVc = [[TZPhotoPreviewController alloc] init];
         photoPreviewVc.currentIndex = index;
         photoPreviewVc.models = _models;

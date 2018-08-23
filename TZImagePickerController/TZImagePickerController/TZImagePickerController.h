@@ -42,8 +42,17 @@
 /// This init method for crop photo / 用这个初始化方法以裁剪图片
 - (instancetype)initCropTypeWithAsset:(id)asset photo:(UIImage *)photo completion:(void (^)(UIImage *cropImage,id asset))completion;
 
+
+   #pragma mark - 新增/修改属性
+/// Default is 0 即 不限制    最大可选图片的大小   单位M
+@property (nonatomic, assign) NSInteger maxPhotoLength;
+/// Default is 0 即 不限制    最大可选gif图片的大小   单位M
+@property (nonatomic, assign) NSInteger maxGIfLength;
+
+
+
 #pragma mark -
-/// Default is 9 / 默认最大可选9张图片(aaaa)
+/// Default is 9 / 默认最大可选9张图片()
 @property (nonatomic, assign) NSInteger maxImagesCount;
 
 /// The minimum count photos user must pick, Default is 0

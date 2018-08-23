@@ -53,6 +53,7 @@
     if (!_didSetIsSelectOriginalPhoto) {
         _isSelectOriginalPhoto = _tzImagePickerVc.isSelectOriginalPhoto;
     }
+    
     if (!self.models.count) {
         self.models = [NSMutableArray arrayWithArray:_tzImagePickerVc.selectedModels];
         _assetsTemp = [NSMutableArray arrayWithArray:_tzImagePickerVc.selectedAssets];
@@ -61,7 +62,11 @@
     [self configCustomNaviBar];
     [self configBottomToolBar];
     self.view.clipsToBounds = YES;
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didChangeStatusBarOrientationNotification:) name:UIApplicationDidChangeStatusBarOrientationNotification object:nil];    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didChangeStatusBarOrientationNotification:) name:UIApplicationDidChangeStatusBarOrientationNotification object:nil];
+    
+    #pragma mark - 新增/修改属性
+    self.maxPhotoLength = _tzImagePickerVc.maxPhotoLength;
+    self.maxGIfLength = _tzImagePickerVc.maxGIfLength;
 }
 
 - (void)setIsSelectOriginalPhoto:(BOOL)isSelectOriginalPhoto {
@@ -115,6 +120,7 @@
     _selectButton.imageView.contentMode = UIViewContentModeScaleAspectFit;
     [_selectButton addTarget:self action:@selector(select:) forControlEvents:UIControlEventTouchUpInside];
     _selectButton.hidden = !tzImagePickerVc.showSelectBtn;
+    
     
     _indexLabel = [[UILabel alloc] init];
     _indexLabel.font = [UIFont systemFontOfSize:14];
@@ -242,7 +248,7 @@
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
-
+    
     CGFloat statusBarHeight = [TZCommonTools tz_statusBarHeight];
     CGFloat statusBarHeightInterval = statusBarHeight - 20;
     CGFloat naviBarHeight = statusBarHeight + _tzImagePickerVc.navigationBar.tz_height;
@@ -291,27 +297,55 @@
 }
 
 #pragma mark - Click Event
-
+#pragma mark - 新增/修改属性 (判断选择的图片大小)
 - (void)select:(UIButton *)selectButton {
+    
     TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     TZAssetModel *model = _models[_currentIndex];
+    
+    
     if (!selectButton.isSelected) {
-        // 1. select:check if over the maxImagesCount / 选择照片,检查是否超过了最大个数的限制
-        if (_tzImagePickerVc.selectedModels.count >= _tzImagePickerVc.maxImagesCount) {
-            NSString *title = [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Select a maximum of %zd photos"], _tzImagePickerVc.maxImagesCount];
-            [_tzImagePickerVc showAlertWithTitle:title];
-            return;
-            // 2. if not over the maxImagesCount / 如果没有超过最大个数限制
-        } else {
-            [_tzImagePickerVc addSelectedModel:model];
-            if (self.photos) {
-                [_tzImagePickerVc.selectedAssets addObject:_assetsTemp[_currentIndex]];
-                [self.photos addObject:_photosTemp[_currentIndex]];
+        __weak typeof(self) weakSelf = self;
+        [[TZImageManager manager] getOriginalPhotoDataWithAsset:model.asset completion:^(NSData *data, NSDictionary *info, BOOL isDegraded) {
+            NSInteger dataSize = data.length ;
+            if (model.type == TZAssetModelMediaTypePhotoGif && weakSelf.maxGIfLength != 0 && dataSize > weakSelf.maxGIfLength * 1024 * 1024){
+                //gif 类型 超限
+                
+                [_tzImagePickerVc showAlertWithTitle:@"GIF图片大小超过限制"];
+            }else if (model.type == TZAssetModelMediaTypePhoto && weakSelf.maxPhotoLength != 0 && dataSize > weakSelf.maxPhotoLength * 1024 * 1024){
+                //图片 类型 超限
+                
+                [_tzImagePickerVc showAlertWithTitle:@"图片大小超过限制"];
+            }else{
+                // 1. select:check if over the maxImagesCount / 选择照片,检查是否超过了最大个数的限制
+                if (_tzImagePickerVc.selectedModels.count >= _tzImagePickerVc.maxImagesCount) {
+                    NSString *title = [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Select a maximum of %zd photos"], _tzImagePickerVc.maxImagesCount];
+                    [_tzImagePickerVc showAlertWithTitle:title];
+                    return;
+                    // 2. if not over the maxImagesCount / 如果没有超过最大个数限制
+                } else {
+                    [_tzImagePickerVc addSelectedModel:model];
+                    if (weakSelf.photos) {
+                        
+                        [_tzImagePickerVc.selectedAssets addObject:self->_assetsTemp[weakSelf.currentIndex]];
+                        [weakSelf.photos addObject:self->_photosTemp[weakSelf.currentIndex]];
+                        
+                    }
+                    if (model.type == TZAssetModelMediaTypeVideo && !_tzImagePickerVc.allowPickingMultipleVideo) {
+                        [_tzImagePickerVc showAlertWithTitle:[NSBundle tz_localizedStringForKey:@"Select the video when in multi state, we will handle the video as a photo"]];
+                    }
+                }
+                model.isSelected = !selectButton.isSelected;
+                [self refreshNaviBarAndBottomBarState];
+                if (model.isSelected) {
+                    [UIView showOscillatoryAnimationWithLayer:selectButton.imageView.layer type:TZOscillatoryAnimationToBigger];
+                }
+                [UIView showOscillatoryAnimationWithLayer:self->_numberImageView.layer type:TZOscillatoryAnimationToSmaller];
+                
             }
-            if (model.type == TZAssetModelMediaTypeVideo && !_tzImagePickerVc.allowPickingMultipleVideo) {
-                [_tzImagePickerVc showAlertWithTitle:[NSBundle tz_localizedStringForKey:@"Select the video when in multi state, we will handle the video as a photo"]];
-            }
-        }
+        }];
+        
+        
     } else {
         NSArray *selectedModels = [NSArray arrayWithArray:_tzImagePickerVc.selectedModels];
         for (TZAssetModel *model_item in selectedModels) {
@@ -342,13 +376,14 @@
                 break;
             }
         }
+        model.isSelected = !selectButton.isSelected;
+        [self refreshNaviBarAndBottomBarState];
+        if (model.isSelected) {
+            [UIView showOscillatoryAnimationWithLayer:selectButton.imageView.layer type:TZOscillatoryAnimationToBigger];
+        }
+        [UIView showOscillatoryAnimationWithLayer:_numberImageView.layer type:TZOscillatoryAnimationToSmaller];
     }
-    model.isSelected = !selectButton.isSelected;
-    [self refreshNaviBarAndBottomBarState];
-    if (model.isSelected) {
-        [UIView showOscillatoryAnimationWithLayer:selectButton.imageView.layer type:TZOscillatoryAnimationToBigger];
-    }
-    [UIView showOscillatoryAnimationWithLayer:_numberImageView.layer type:TZOscillatoryAnimationToSmaller];
+    
 }
 
 - (void)backButtonClick {
@@ -450,9 +485,10 @@
     
     TZAssetPreviewCell *cell;
     __weak typeof(self) weakSelf = self;
-    if (_tzImagePickerVc.allowPickingMultipleVideo && model.type == TZAssetModelMediaTypeVideo) {
+    #pragma mark - 新增/修改属性 （修改 gif  在没有开启混选 按钮时候  预览gif  和选择框不能同在的 问题）
+    if (model.type == TZAssetModelMediaTypeVideo) {
         cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"TZVideoPreviewCell" forIndexPath:indexPath];
-    } else if (_tzImagePickerVc.allowPickingMultipleVideo && model.type == TZAssetModelMediaTypePhotoGif && _tzImagePickerVc.allowPickingGif) {
+    } else if (model.type == TZAssetModelMediaTypePhotoGif && _tzImagePickerVc.allowPickingGif) {
         cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"TZGifPreviewCell" forIndexPath:indexPath];
     } else {
         cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"TZPhotoPreviewCell" forIndexPath:indexPath];
@@ -550,6 +586,12 @@
         _originalPhotoButton.hidden = YES;
         _originalPhotoLabel.hidden = YES;
         _doneButton.hidden = YES;
+    }
+    
+#pragma mark - 新增/修改属性 增加不允许混选时候视频右上角选择框判断
+    if (model.type == TZAssetModelMediaTypeVideo  && !_tzImagePickerVc.allowPickingMultipleVideo){
+        _selectButton.hidden = YES;
+        _indexLabel.hidden = YES;
     }
 }
 

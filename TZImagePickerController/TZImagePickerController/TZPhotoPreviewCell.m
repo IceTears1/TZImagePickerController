@@ -149,26 +149,27 @@
 
 - (void)setModel:(TZAssetModel *)model {
     _model = model;
+    __weak typeof(self) weakSelf = self;
     self.isRequestingGIF = NO;
     [_scrollView setZoomScale:1.0 animated:NO];
     if (model.type == TZAssetModelMediaTypePhotoGif) {
         // 先显示缩略图
         [[TZImageManager manager] getPhotoWithAsset:model.asset completion:^(UIImage *photo, NSDictionary *info, BOOL isDegraded) {
-            self.imageView.image = photo;
-            [self resizeSubviews];
-            if (self.isRequestingGIF) {
+            weakSelf.imageView.image = photo;
+            [weakSelf resizeSubviews];
+            if (weakSelf.isRequestingGIF) {
                 return;
             }
             // 再显示gif动图
-            self.isRequestingGIF = YES;
+            weakSelf.isRequestingGIF = YES;
             [[TZImageManager manager] getOriginalPhotoDataWithAsset:model.asset progressHandler:^(double progress, NSError *error, BOOL *stop, NSDictionary *info) {
                 progress = progress > 0.02 ? progress : 0.02;
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    self.progressView.progress = progress;
+                    weakSelf.progressView.progress = progress;
                     if (progress >= 1) {
-                        self.progressView.hidden = YES;
+                        weakSelf.progressView.hidden = YES;
                     } else {
-                        self.progressView.hidden = NO;
+                        weakSelf.progressView.hidden = NO;
                     }
                 });
 #ifdef DEBUG
@@ -176,10 +177,13 @@
 #endif
             } completion:^(NSData *data, NSDictionary *info, BOOL isDegraded) {
                 if (!isDegraded) {
-                    self.isRequestingGIF = NO;
-                    self.progressView.hidden = YES;
-                    self.imageView.image = [UIImage sd_tz_animatedGIFWithData:data];
-                    [self resizeSubviews];
+                    weakSelf.isRequestingGIF = NO;
+                    weakSelf.progressView.hidden = YES;
+                  
+                        
+                    weakSelf.imageView.image = [UIImage sd_tz_animatedGIFWithData:data];
+                    
+                    [weakSelf resizeSubviews];
                 }
             }];
         } progressHandler:nil networkAccessAllowed:NO];

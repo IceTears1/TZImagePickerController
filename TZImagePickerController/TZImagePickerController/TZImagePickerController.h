@@ -43,7 +43,7 @@
 - (instancetype)initCropTypeWithAsset:(id)asset photo:(UIImage *)photo completion:(void (^)(UIImage *cropImage,id asset))completion;
 
 #pragma mark -
-/// Default is 9 / 默认最大可选9张图片
+/// Default is 9 / 默认最大可选9张图片(aaaa)
 @property (nonatomic, assign) NSInteger maxImagesCount;
 
 /// The minimum count photos user must pick, Default is 0

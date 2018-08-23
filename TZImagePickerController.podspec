@@ -1,13 +1,13 @@
 Pod::Spec.new do |s|
-  s.name         = "TZImagePickerController"
-  s.version      = "2.2.6"
-  s.summary      = "A clone of UIImagePickerController, support picking multiple photos、original photo and video"
-  s.homepage     = "https://github.com/banchichen/TZImagePickerController"
+  s.name         = "BL_TZImagePickerController"
+  s.version      = "2.2.6.0"
+  s.summary      = "修改TZImagePickerController 新增图片大小判断功能"
+  s.homepage     = "https://github.com/IceTears1/TZImagePickerController"
   s.license      = "MIT"
-  s.author       = { "banchichen" => "tanzhenios@foxmail.com" }
+  s.author             = { "binglei" => "642203775@qq.com" }
   s.platform     = :ios
   s.ios.deployment_target = "6.0"
-  s.source       = { :git => "https://github.com/banchichen/TZImagePickerController.git", :tag => "2.2.6" }
+  s.source       = { :git => "https://github.com/IceTears1/TZImagePickerController.git", :tag => "2.2.6.0" }
   s.requires_arc = true
   s.resources    = "TZImagePickerController/TZImagePickerController/*.{png,bundle}"
   s.source_files = "TZImagePickerController/TZImagePickerController/*.{h,m}"

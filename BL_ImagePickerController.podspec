@@ -1,5 +1,5 @@
 Pod::Spec.new do |s|
-  s.name         = "BL_TZImagePickerController"
+  s.name         = "BL_ImagePickerController"
   s.version      = "2.2.6.0"
   s.summary      = "修改TZImagePickerController 新增图片大小判断功能"
   s.homepage     = "https://github.com/IceTears1/TZImagePickerController"

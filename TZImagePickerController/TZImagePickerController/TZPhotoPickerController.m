@@ -597,14 +597,14 @@ static CGFloat itemMargin = 5;
             TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
             [imagePickerVc showAlertWithTitle:[NSBundle tz_localizedStringForKey:@"Can not choose both video and photo"]];
         } else {
-//            TZVideoPlayerController *videoPlayerVc = [[TZVideoPlayerController alloc] init];
-//            videoPlayerVc.model = model;
-//
-//            [self.navigationController pushViewController:videoPlayerVc animated:YES];
-            TZPhotoPreviewController *photoPreviewVc = [[TZPhotoPreviewController alloc] init];
-            photoPreviewVc.currentIndex = index;
-            photoPreviewVc.models = _models;
-            [self pushPhotoPrevireViewController:photoPreviewVc];
+            TZVideoPlayerController *videoPlayerVc = [[TZVideoPlayerController alloc] init];
+            videoPlayerVc.model = model;
+
+            [self.navigationController pushViewController:videoPlayerVc animated:YES];
+//            TZPhotoPreviewController *photoPreviewVc = [[TZPhotoPreviewController alloc] init];
+//            photoPreviewVc.currentIndex = index;
+//            photoPreviewVc.models = _models;
+//            [self pushPhotoPrevireViewController:photoPreviewVc];
         }
     }
 //    else if (model.type == TZAssetModelMediaTypePhotoGif && tzImagePickerVc.allowPickingGif) {
